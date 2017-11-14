@@ -1,0 +1,198 @@
+!////////////////////////////////////////////
+!// Parameter extraction simulation
+!////////////////////////////////////////////
+
+Header
+  CHECK KEYWORDS Warn
+  Mesh DB "mesh/" "."
+  Include Path "."
+  Results Directory "."
+End
+
+Simulation
+  Max Output Level = 5
+  Coordinate System = Cartesian
+  Coordinate Mapping(3) = 1 2 3
+  Simulation Type = Steady state
+  Steady State Max Iterations = 1
+  Output Intervals = 1
+
+  Post File = param.vtu
+End
+
+Constants
+  Gravity(4) = 0 -1 0 9.82
+  Stefan Boltzmann = 5.67e-08
+  Permittivity of Vacuum = 8.8542e-12
+  Boltzmann Constant = 1.3807e-23
+  Unit Charge = 1.602e-19
+End
+
+Body 1
+  Target Bodies(1) = 1000
+  Name = "Coil 1"
+  Equation = 1
+  Material = 1
+End
+
+Body 2
+  Target Bodies(1) = 1001
+  Name = "Coil 2"
+  Equation = 1
+  Material = 1
+End
+
+Body 3
+  Target Bodies(1) = 1002
+  Name = "AIR"
+  Equation = 1
+  Material = 2
+End
+
+Equation 1
+  Active Solvers(2) = 1 2
+End
+
+Solver 1
+  Equation = "MGDynamics"
+
+  Element = n:1 e:1
+
+  Variable = "AV"
+  Procedure = "MagnetoDynamics" "WhitneyAVSolver"
+
+  Linear System Symmetric = True
+  Linear System Solver = "Iterative"
+  Linear System Preconditioning = none
+  Linear System Residual Output = 50
+  Linear System Max Iterations = 15000
+  Linear System Iterative Method = CG !GCR
+  Linear System Convergence Tolerance = 1.0e-6
+  BicgStabl Polynomial Degree = 4
+End
+
+Solver 2
+  Equation = "MGDynamicsCalc"
+
+  Procedure = "MagnetoDynamics" "MagnetoDynamicsCalcFields"
+  Linear System Symmetric = True
+
+  Potential Variable = String "AV"
+  Angular Frequency = 85.2e6
+
+  Calculate Current Density = Logical True
+  Calculate Electric Field = Logical True
+  Calculate Magnetic Field Strength = Logical True
+  Calculate Joule Heating = Logical True
+
+  Steady State Convergence Tolerance = 0
+  Linear System Solver = "Iterative"
+  Linear System Preconditioning = None
+  Linear System Residual Output = 0
+  Linear System Max Iterations = 5000
+  Linear System Iterative Method = CG
+  Linear System Convergence Tolerance = 1.0e-8
+
+  Calculate Nodal Fields = Logical True
+  Impose Body Force Potential = Logical False
+  Impose Body Force Current = Logical False
+
+  Discontinuous Bodies = True
+End
+
+Solver 3
+  Exec Solver = after all
+  Equation = "SaveScalars"
+  Procedure = File "SaveData" "SaveScalars"
+  Filename = File "output1.dat"
+  Variable 1 = Current Density e
+    Mask Name 1 = String "In1"
+    Operator 1 = boundary int
+  Variable 2 = Current Density e
+    Mask Name 2 = String "Out1"
+    Operator 2 = boundary int
+  Variable 3 = Current Density e
+    Mask Name 3 = String "In2"
+    Operator 3 = boundary int
+  Variable 4 = Current Density e
+    Mask Name 4 = String "Out2"
+    Operator 4 = boundary int
+End
+
+Material 1
+  Name = "Copper"
+  Relative Permittivity = 1.0
+  Relative Permeability = 1.0
+  Electric Conductivity = 5.96e7
+End
+
+Material 2
+  Name = "Air"
+  Relative Permittivity = 1.0
+  Relative Permeability = 1.0
+  Electric Conductivity = 0.0
+End
+
+
+Boundary Condition 1
+  Name = "IN_1"
+  Target Boundaries(1) = 2002 
+  
+  AV {e} 1 = Real 0.0
+  AV {e} 2 = Real 0.0
+  AV = Real 0 ! Save scalar output seems ok when set to 1
+  
+  In1 = logical True
+  Save Scalars = True
+End
+
+Boundary Condition 2
+  Name = "OUT_1"
+  Target Boundaries(1) = 2003
+  AV {e} 1 = Real 0.0
+  AV {e} 2 = Real 0.0
+  AV = Real 0
+  
+  Out1 = logical True
+  Save Scalars = True
+End
+
+Boundary Condition 3
+  Name = "IN_2"
+  Target Boundaries(1) = 2004
+  AV {e} 1 = Real 0.0
+  AV {e} 2 = Real 0.0
+  AV = Real 1
+  
+  In2 = logical True
+  Save Scalars = True
+End
+
+Boundary Condition 4
+  Name = "OUT_2"
+  Target Boundaries(1) = 2005
+  AV {e} 1 = Real 0.0
+  AV {e} 2 = Real 0.0
+  AV = Real 0
+  
+  Out2 = logical True
+  Save Scalars = True
+End
+
+Boundary Condition 5
+  Name = "Coil 1 surface"
+  Target Boundaries(1) = 2000
+End
+
+Boundary Condition 6
+  Name = "Coil 2 surface"
+  Target Boundaries(1) = 2001
+End
+
+Boundary Condition 7
+  Name = "Infinity"
+  Target Boundaries(1) = 2006
+
+  AV {e} 1 = Real 0.0
+  AV {e} 2 = Real 0.0
+End
